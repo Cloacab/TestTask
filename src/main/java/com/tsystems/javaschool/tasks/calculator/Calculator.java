@@ -276,6 +276,8 @@ public class Calculator {
         return PRECEDENCE[OPERATORS.indexOf(op)];
     }
 
+//public class Calculator {
+
     /**
      * Evaluate statement represented as string.
      *
@@ -310,5 +312,4 @@ public class Calculator {
         test.clear();
         return res;
     }
-
 }

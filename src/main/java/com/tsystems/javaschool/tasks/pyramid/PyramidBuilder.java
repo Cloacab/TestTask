@@ -1,6 +1,5 @@
 package com.tsystems.javaschool.tasks.pyramid;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -55,5 +54,4 @@ public class PyramidBuilder {
         }
         return new int[]{depth, width};
     }
-
 }
