@@ -234,7 +234,20 @@ public class InfixEvaluator
         }
         if(operandStack.isEmpty())
             return null;
-        return String.valueOf(operandStack.pop());
+        Double last = operandStack.pop();
+        Long lastInt = null;
+        if (last == Math.floor(last)) {
+            lastInt = Math.round(last);
+        }
+        String res;
+        if (lastInt == null) {
+            res = String.valueOf(last);
+        } else {
+            res = String.valueOf(lastInt);
+        }
+        return res;
+//        return String.valueOf(lastInt == null ? last : lastInt);
+//        return String.valueOf(operandStack.pop());
     }
 
     /**
@@ -290,15 +303,15 @@ public class InfixEvaluator
             //System.out.println("Please insert an argument: ");
 
             //String g = f.nextLine();
-            String g = "22/4*2.159";
-//            String g = "(1+3)*3^2+2*4-1";
+//            String g = "22/4*2.159";
+            String g = "(1+3)*3^2+2*4-1";
             test = inputCleaner(g);
 
 //            for (int z = 0; z < test.size(); z++) {
 //                System.out.println(test.get(z));
 //            }
             String res = infixCalculator(test);
-//            System.out.println(res);
+            System.out.println(res);
 
             test.clear();
         } catch (SyntaxErrorException e) {
