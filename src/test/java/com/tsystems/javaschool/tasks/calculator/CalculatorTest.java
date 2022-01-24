@@ -5,7 +5,7 @@ import org.junit.Test;
 
 public class CalculatorTest {
 
-    private Calculator2 calc = new Calculator2();
+    private Calculator calc = new Calculator();
 
     @Test
     public void evaluate() {

@@ -1,157 +1,17 @@
 package com.tsystems.javaschool.tasks.calculator;
 
-import java.util.ArrayList;
-import java.util.EmptyStackException;
-import java.util.List;
-import java.util.Stack;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.*;
 
 public class Calculator {
 
-    public static class SyntaxErrorException extends Exception {
-        /** Construct a SyntaxErrorException with the specified message.
-         @param message The message
-         */
-        SyntaxErrorException(String message) {
-            super(message);
-        }
-    }
-    /** This is the stack of operands:
-     i.e. (doubles/parentheses/brackets/curly braces)
-     */
-    private static Stack<Double> operandStack = new Stack<Double>();
+    private static final String OPERATORS = "+-/*()";
+    private static final String NONBRACES = "+-/*";
 
-    /** This is the operator stack
-     *  i.e. (+-/*%^)
-     */
-    private static Stack<String> operatorStack = new Stack<String>();
-
-    /** These are the possible operators */
-    private static final String OPERATORS = "+-/*%^()[]{}";
-    private static final String BRACES = "()[]{}";
-    private static final String NONBRACES = "+-/*%^";
-    private static final int[] PRECEDENCE = {1, 1, 2, 2, 2, -1, -1, -1, -1, -1, -1};
-    /** This is an ArrayList of all the discrete
-     things (operators/operands) making up an input.
-     This is really just getting rid of the spaces,
-     and dividing up the "stuff" into manageable pieces.
-     */
-    static ArrayList<String> input = new ArrayList<String>();
-
-    public static ArrayList inputCleaner(String postfix){
-        StringBuilder poop = new StringBuilder();
-        String doody = postfix.replace(" ", "");
-        try {
-            for (int i = 0; i < doody.length(); i++) {
-                char c = doody.charAt(i);
-                boolean isNum = (c >= '0' && c <= '9');
-
-                if (isNum) {
-                    poop.append(c);
-                    if (i == doody.length()-1) {
-                        input.add(poop.toString());
-                        poop.delete(0, poop.length());
-                    }
-                } else if (c == '.') {
-                    for (int j = 0; j < poop.length(); j++) {
-                        if (poop.charAt(j) == '.') {
-                            throw new SyntaxErrorException("You can't have two decimals in a number.");
-                        } else if (j == poop.length() - 1) {
-                            poop.append(c);
-                            j = (poop.length() + 1);
-                        }
-                    }
-                    if (poop.length() == 0) {
-                        poop.append(c);
-                    }
-                    if (i == doody.length()-1) {
-                        throw new SyntaxErrorException("You can't end your equation with a decimal!");
-                    }
-                } else if (OPERATORS.indexOf(c)!= -1) {
-                    if (poop.length() != 0) {
-                        input.add(poop.toString());
-                        poop.delete(0, poop.length());
-                    }
-                    poop.append(c);
-                    input.add(poop.toString());
-                    poop.delete(0, poop.length());
-                } else {
-                    throw new SyntaxErrorException("Make sure your input only contains numbers, operators, or parantheses/brackets/braces.");
-                }
-            }
-
-            int numLP = 0;
-            int numRP = 0;
-            int numLB = 0;
-            int numRB = 0;
-            int numLBr = 0;
-            int numRBr = 0;
-
-            for (int f = 0; f < input.size(); f++) {
-                String trololol = input.get(f);
-
-                switch (trololol) {
-                    case "(": numLP++;
-                        break;
-                    case "[": numLB++;
-                        break;
-                    case "{": numLBr++;
-                        break;
-                    case ")": numRP++;
-                        break;
-                    case "]": numRB++;
-                        break;
-                    case "}": numRBr++;
-                        break;
-                    default: //do nothing
-                        break;
-                }
-
-            }
-            if (numLP != numRP || numLB != numRB || numLBr != numRBr) {
-                throw new SyntaxErrorException("The number of brackets, braces, or parentheses don't match up!");
-            }
-
-            int doop = 0;
-            int scoop = 0;
-            int foop = 0;
-            for (int f = 0; f < input.size(); f++) {
-                String awesome = input.get(f);
-                switch (awesome) {
-                    case "(": doop++;
-                        break;
-                    case "[": scoop++;
-                        break;
-                    case "{": foop++;
-                        break;
-                    case ")": doop--;
-                        break;
-                    case "]": scoop--;
-                        break;
-                    case "}": foop--;
-                        break;
-                    default: //do nothing
-                        break;
-                }
-                if (doop < 0 || scoop < 0 || foop < 0) {
-                    throw new SyntaxErrorException("The order of your parentheses, brackets, or braces is off.\nMake sure you open a set of parenthesis/brackets/braces before you close them.");
-                }
-            }
-            if (NONBRACES.indexOf(input.get(input.size()-1)) != -1) {
-                throw new SyntaxErrorException("The input can't end in an operator");
-            }
-            return input;
-        } catch (SyntaxErrorException ex) {
-            System.out.println(ex);
-            return input;
-        }
-    }
-
-    /**Method to process operators
-     * @param op The operator
-     * @throws EmptyStackException
-     */
-
-//public class Calculator {
+    private static final Stack<Double> valueStack = new Stack<>();
+    private static final Stack<Character> operatorStack = new Stack<>();
+    private static boolean error = false;
 
     /**
      * Evaluate statement represented as string.
@@ -163,116 +23,215 @@ public class Calculator {
      */
     public String evaluate(String statement) {
         // TODO: Implement the logic here
-//        ArrayList<String> test = new ArrayList<>();
-//            Scanner f = new Scanner(System.in);
+        LinkedList<String> symbols = inputCleaner(statement);
+        return processInput(symbols);
+    }
 
-        //System.out.println("Please insert an argument: ");
+    private static LinkedList<String> inputCleaner(String statement){
+        if (statement == null || statement.isEmpty()) return new LinkedList<>();
+        LinkedList<String> input = new LinkedList<>();
+        StringBuilder sb = new StringBuilder();
+        String noSpaces = statement.replace(" ", "");
+        try {
+            for (int i = 0; i < noSpaces.length(); i++) {
+                char c = noSpaces.charAt(i);
+                boolean isNum = (c >= '0' && c <= '9');
 
-        //String g = f.nextLine();
-//        String g = "22/4*2.159";
-//        String g = "(1+3)*3^2+2*4-1";
-//        test = inputCleaner(statement);
+                if (isNum) {
+                    sb.append(c);
+                    if (i == noSpaces.length()-1) {
+                        input.add(sb.toString());
+                        sb.delete(0, sb.length());
+                    }
+                } else if (c == '.') {
+                    for (int j = 0; j < sb.length(); j++) {
+                        if (sb.charAt(j) == '.') {
+                            throw new RuntimeException();
+                        } else if (j == sb.length() - 1) {
+                            sb.append(c);
+                            j = (sb.length() + 1);
+                        }
+                    }
+                    if (sb.length() == 0) {
+                        sb.append(c);
+                    }
+                    if (i == noSpaces.length()-1) {
+                        throw new RuntimeException();
+                    }
+                } else if (OPERATORS.indexOf(c)!= -1) {
+                    if (sb.length() != 0) {
+                        input.add(sb.toString());
+                        sb.delete(0, sb.length());
+                    }
+                    sb.append(c);
+                    input.add(sb.toString());
+                    sb.delete(0, sb.length());
+                } else {
+                    throw new RuntimeException();
+                }
+            }
 
-//            for (int z = 0; z < test.size(); z++) {
-//                System.out.println(test.get(z));
-//            }
-//        String res = null;
-//        try {
-//            res = infixCalculator(test);
-//        } catch (Exception e) {
-//            return null;
-//        }
-//            System.out.println(res);
-//
-//        test.clear();
+            int numLP = 0;
+            int numRP = 0;
 
-        String res = String.valueOf(calculate(statement));
-        System.out.println(res);
+            for (String s : input) {
+                switch (s) {
+                    case "(":
+                        numLP++;
+                        break;
+                    case ")":
+                        numRP++;
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+            if (numLP != numRP) {
+                throw new RuntimeException();
+            }
+
+            int doop = 0;
+            for (String awesome : input) {
+                switch (awesome) {
+                    case "(":
+                        doop++;
+                        break;
+                    case ")":
+                        doop--;
+                        break;
+                    default:
+                        break;
+                }
+                if (doop < 0) {
+                    throw new RuntimeException();
+                }
+            }
+            if (NONBRACES.contains(input.get(input.size() - 1))) {
+                throw new RuntimeException();
+            }
+            return input;
+        } catch (RuntimeException e) {
+            return input;
+        }
+    }
+
+    public String processInput(LinkedList<String> input) {
+        if (input.isEmpty()) return null;
+
+        for (String nextToken : input) {
+            char ch = nextToken.charAt(0);
+            if (ch >= '0' && ch <= '9') {
+                double value = Double.parseDouble(nextToken);
+                valueStack.push(value);
+            } else if (isOperator(ch)) {
+                if (operatorStack.empty() || getPrecedence(ch) > getPrecedence(operatorStack.peek())) {
+                    operatorStack.push(ch);
+                } else {
+                    while (!operatorStack.empty() && getPrecedence(ch) <= getPrecedence(operatorStack.peek())) {
+                        char toProcess = operatorStack.peek();
+                        operatorStack.pop();
+                        processOperator(toProcess);
+                    }
+                    operatorStack.push(ch);
+                }
+            } else if (ch == '(') {
+                operatorStack.push(ch);
+            } else if (ch == ')') {
+                while (!operatorStack.empty() && isOperator(operatorStack.peek())) {
+                    char toProcess = operatorStack.peek();
+                    operatorStack.pop();
+                    processOperator(toProcess);
+                }
+                if (!operatorStack.empty() && operatorStack.peek() == '(') {
+                    operatorStack.pop();
+                } else {
+                    error = true;
+                }
+            }
+
+        }
+
+        while (!operatorStack.empty() && isOperator(operatorStack.peek())) {
+            char toProcess = operatorStack.peek();
+            operatorStack.pop();
+            processOperator(toProcess);
+        }
+
+        if (!error) {
+            double result = valueStack.peek();
+
+            String res = processResult(result);
+
+            valueStack.pop();
+            if (!operatorStack.empty() || !valueStack.empty()) {
+                return null;
+            } else {
+                return res;
+            }
+        }
+        return null;
+    }
+
+    private String processResult(double result) {
+        DecimalFormat df = new DecimalFormat("#.####");
+        df.setRoundingMode(RoundingMode.CEILING);
+        Long lastInt = null;
+        if (result == Math.floor(result)) {
+            lastInt = Math.round(result);
+        }
+        String res;
+        if (lastInt == null) {
+            res = df.format(result);
+        } else {
+            res = String.valueOf(lastInt);
+        }
         return res;
     }
 
-    private static double calculate(String expresion) {
-        double result = 0;
-        String operation = "";
-        List<Character> openBrackets = new ArrayList<Character>();
-        List<Character> closeBrackets = new ArrayList<Character>();
-        StringBuilder innerInput = new StringBuilder();
-
-        for (int i = 0; i < expresion.length(); i++) {
-            char inputChar = expresion.charAt(i);
-            if(openBrackets.isEmpty()){
-                if (Character.isDigit(inputChar)) {
-
-                    if (operation == "" && result == 0) {
-                        result = Character.digit(inputChar, Character.MAX_RADIX);
-                        continue;
-                    } else if (operation != "") {
-                        result = calculateWithOperation(operation, Character.digit(inputChar, Character.MAX_RADIX), result);
-                        continue;
-                    }
-                }
-                // if the input is operation then we must set the operation in order
-                // to be taken into consideration again ..
-                if (inputChar == '+' || inputChar == '-' || inputChar == '*' || inputChar == '/') {
-                    operation = Character.toString(inputChar);
-                    continue;
-                }
-            }
-            if (inputChar == '(') {
-                // set operation to be empty in order to calculate the
-                // operations inside the brackets ..
-                openBrackets.add(inputChar);
-                continue;
-            }
-            if(inputChar ==')'){
-                closeBrackets.add(inputChar);
-                if(openBrackets.size() == closeBrackets.size()){
-                    openBrackets.remove((Character)'(');
-                    closeBrackets.remove((Character)')');
-                    double evalResult =  calculate(innerInput.toString());
-                    result = calculateWithOperation(operation,evalResult,result);
-                    innerInput.setLength(0);
-                }
-                if(openBrackets.size()> closeBrackets.size()){
-                    continue;
-                }
-                //break;
-            }
-            else{
-                innerInput.append(inputChar);
-            }
-        }
-        return result;
+    private boolean isOperator(char ch) {
+        return ch == '+' || ch == '-' || ch == '*' || ch == '/';
     }
 
-    /**
-     * this method to calculate the simple expressions
-     * @param operation
-     * @param inputChar
-     * @param output
-     * @return
-     */
-    private static double calculateWithOperation(String operation, double inputChar, double output) {
-        switch (operation) {
-            case "+":
-                output = output + inputChar;
-                break;
-
-            case "-":
-                output = output - inputChar;
-                break;
-
-            case "*":
-                output = output * inputChar;
-                break;
-
-            case "/":
-                output = output / inputChar;
-                break;
-
-            default:
-                break;
+    private int getPrecedence(char ch) {
+        if (ch == '+' || ch == '-') {
+            return 1;
         }
-        return output;
+        if (ch == '*' || ch == '/') {
+            return 2;
+        }
+        return 0;
     }
+
+    private void processOperator(char t) {
+        double a, b;
+        if (valueStack.empty()) {
+            error = true;
+            return;
+        } else {
+            b = valueStack.peek();
+            valueStack.pop();
+        }
+        if (valueStack.empty()) {
+            error = true;
+            return;
+        } else {
+            a = valueStack.peek();
+            valueStack.pop();
+        }
+        double r = 0;
+        if (t == '+') {
+            r = a + b;
+        } else if (t == '-') {
+            r = a - b;
+        } else if (t == '*') {
+            r = a * b;
+        } else if(t == '/') {
+            r = a / b;
+        } else {
+            error = true;
+        }
+        valueStack.push(r);
+    }
+
 }

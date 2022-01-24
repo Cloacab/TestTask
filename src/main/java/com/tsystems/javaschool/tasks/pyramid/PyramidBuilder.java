@@ -15,8 +15,6 @@ public class PyramidBuilder {
      */
     public int[][] buildPyramid(List<Integer> inputNumbers) {
         // TODO : Implement your solution here
-//        System.out.println(calculateDepth(inputNumbers.size()));
-//        System.out.println(calculateWidth(inputNumbers.size()));
 
         if (inputNumbers.contains(null)) throw new CannotBuildPyramidException();
 
